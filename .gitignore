@@ -34,3 +34,6 @@ Thumbs.db
 
 # Generated outputs
 output/
+
+# Large datasets
+data/raw/candidates.jsonl
