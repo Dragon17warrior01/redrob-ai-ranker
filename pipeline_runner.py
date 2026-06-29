@@ -4,48 +4,55 @@ pipeline_runner.py
 
 from pathlib import Path
 
-print("1. Imports started...")
-
 from langgraph_pipeline.graph import graph
 from langgraph_pipeline.state import PipelineState
 from langgraph_pipeline.nodes.parser import parse_candidates_file
 from langgraph_pipeline.nodes.job_parser import JobParser
 
-print("2. Imports completed.")
-
 CANDIDATE_FILE = Path("data/raw/candidates.jsonl")
 JOB_DESCRIPTION_FILE = Path("data/raw/job_description.txt")
 
-print("3. Reading job description...")
 
-with open(JOB_DESCRIPTION_FILE, "r", encoding="utf-8") as f:
-    job_text = f.read()
+def run_pipeline(
+    candidate_file=CANDIDATE_FILE,
+    job_description_file=JOB_DESCRIPTION_FILE,
+):
+    print("1. Reading job description...")
 
-print("4. Parsing job description...")
+    with open(job_description_file, "r", encoding="utf-8") as f:
+        job_text = f.read()
 
-job = JobParser().parse(job_text)
+    print("2. Parsing job description...")
 
-print("5. Job parsed successfully.")
+    job = JobParser().parse(job_text)
 
-results = []
+    print("3. Job parsed successfully.")
 
-print("6. Starting candidate loop...")
+    results = []
 
-for candidate in parse_candidates_file(CANDIDATE_FILE):
+    print("4. Starting candidate evaluation...")
 
-    print(f"Processing {candidate.candidate_id}")
+    for idx, candidate in enumerate(
+        parse_candidates_file(candidate_file),
+        start=1,
+    ):
 
-    state = PipelineState(
-        candidate=candidate,
-        job=job,
-    )
+        state = PipelineState(
+            candidate=candidate,
+            job=job,
+        )
 
-    print("Calling graph...")
+        final_state = graph.invoke(state)
 
-    final_state = graph.invoke(state)
+        results.append(final_state)
 
-    print("Graph returned.")
+        if idx % 1000 == 0:
+            print(f"Processed {idx} candidates...")
 
-    results.append(final_state)
+    print(f"Finished processing {len(results)} candidates.")
 
-print("Done.")
+    return results
+
+
+if __name__ == "__main__":
+    run_pipeline()
